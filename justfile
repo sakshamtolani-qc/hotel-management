@@ -67,8 +67,18 @@ app name:
     {{python}} manage.py startapp {{name}}
     @echo "Created app {{name}} with custom template"
 
+# Environment setup
+create-env:
+    #!/usr/bin/env sh
+    if [ ! -f .env ]; then
+        cp .env.template .env
+        echo "Created .env file from .env.template"
+    else
+        echo ".env file already exists"
+    fi
+
 # Combined commands
-setup: install migrate superuser
+setup: create-env install migrate superuser
 
 # Development workflow
 dev: format lint run
