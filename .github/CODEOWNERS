@@ -1,0 +1,38 @@
+# This is a CODEOWNERS file to define individuals or teams responsible for code in this repository.
+# Each line is a file pattern followed by one or more owners.
+# Order is important; the last matching pattern takes precedence.
+
+# Default owners for everything in the repo (unless a later match takes precedence)
+* @sakshamtolani-qc
+
+# Backend Django settings and core files
+/backend/ @sakshamtolani-qc
+*.py @sakshamtolani-qc
+
+# App-specific ownership
+/users/ @sakshamtolani-qc
+/rooms/ @sakshamtolani-qc
+/reservations/ @sakshamtolani-qc
+/billing/ @sakshamtolani-qc
+
+# Configuration files
+*.json @sakshamtolani-qc
+*.yml @sakshamtolani-qc
+*.yaml @sakshamtolani-qc
+justfile @sakshamtolani-qc
+requirements.txt @sakshamtolani-qc
+
+# Database
+*.sqlite3 @sakshamtolani-qc
+
+# Documentation
+/docs/ @sakshamtolani-qc
+*.md @sakshamtolani-qc
+
+# Static files and media
+/static/ @sakshamtolani-qc
+/media/ @sakshamtolani-qc
+
+# Testing
+/*/tests/ @sakshamtolani-qc
+**/test_*.py @sakshamtolani-qc
