@@ -92,7 +92,7 @@ create-env:
     fi
 
 # Combined commands
-setup: create-env install migrate superuser
+setup: create-env install migrate
 
 # Development workflow
 dev:
