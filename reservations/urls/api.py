@@ -1,7 +1,4 @@
-from django.urls import path
-from reservations.views import api as views
-
-app_name = 'reservations'
+app_name = "reservations"
 
 urlpatterns = [
     # Add your URL patterns here

@@ -10,8 +10,22 @@ python := "uv run python"
 
 # Install dependencies using uv
 install:
-    uv pip install -e .
-    uv pip install ruff black pytest pytest-django
+    #!/usr/bin/env sh
+    if [ -f "requirements.txt" ]; then
+        uv pip install -r requirements.txt
+        uv pip install -e .
+    else
+        echo "requirements.txt not found. Please run 'just requirements' first"
+        exit 1
+    fi
+
+# Check if required dev tools are installed
+check-dev-deps:
+    #!/usr/bin/env sh
+    if ! command -v ruff > /dev/null || ! command -v black > /dev/null; then
+        echo "Development dependencies missing. Please run 'just install' first"
+        exit 1
+    fi
 
 # Database commands
 migrate:
@@ -46,12 +60,10 @@ clean:
     find . -type d -name ".ruff_cache" -exec rm -rf {} +
 
 # Code quality
-lint:
-    uv pip install ruff
-    uv run ruff check .
+lint: check-dev-deps
+    uv run ruff check . --fix
 
-format:
-    uv pip install black
+format: check-dev-deps
     uv run black .
 
 # Django management
@@ -60,7 +72,9 @@ superuser:
 
 # Generate requirements
 requirements:
+    #!/usr/bin/env sh
     uv pip freeze > requirements.txt
+    echo "Generated requirements.txt with all dependencies"
 
 # App creation commands
 app name:
@@ -81,4 +95,7 @@ create-env:
 setup: create-env install migrate superuser
 
 # Development workflow
-dev: format lint run
+dev:
+    just format || true
+    just lint || true
+    just run

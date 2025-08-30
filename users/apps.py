@@ -4,7 +4,7 @@ from django.conf import settings
 
 
 def prevent_superuser_creation(sender, instance, **kwargs):
-    if settings.MODE == 'prod' and instance.is_superuser:
+    if settings.MODE == "prod" and instance.is_superuser:
         raise Exception(
             "\n❌ SECURITY NOTICE: Superuser creation is disabled in development mode.\n\n"
             "For security reasons, please use one of these methods instead:\n"
@@ -20,5 +20,6 @@ class UsersConfig(AppConfig):
 
     def ready(self):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         pre_save.connect(prevent_superuser_creation, sender=User)
