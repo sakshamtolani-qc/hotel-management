@@ -15,3 +15,4 @@ class BillingAdmin(admin.ModelAdmin):
     )
     list_filter = ("payment_status", "payment_method", "created_at")
     search_fields = ("transaction_id", "reservation__id", "user__username")
+
