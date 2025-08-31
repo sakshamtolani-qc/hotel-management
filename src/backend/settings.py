@@ -54,7 +54,7 @@ if MODE == "dev":
 else:
     client.secrets.get_secret_by_name(secret_name="DEBUG",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
 
-ALLOWED_HOSTS = ["localhost"]
+ALLOWED_HOSTS = ["localhost","127.0.0.1"]
 
 
 # Application definition
