@@ -75,7 +75,7 @@ A comprehensive hotel management system built with Django REST Framework, featur
    ```bash
    just run
    ```
-   The API will be available at `http://localhost:8000`
+   The API will be available at `http://localhost:8080`
 
 ## Development Commands
 
