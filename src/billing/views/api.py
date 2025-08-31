@@ -1,8 +1,3 @@
-# Example ViewSet:
-# class InvoiceViewSet(viewsets.ModelViewSet):
-#     permission_classes = [permissions.IsAuthenticated]
-#     serializer_class = InvoiceSerializer
-#     queryset = Invoice.objects.all()
 from rest_framework import generics, permissions, filters
 from billing.models import Billing
 from billing.serializers import BillingSerializer
