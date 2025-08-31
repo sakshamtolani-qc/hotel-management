@@ -1,57 +1,40 @@
-# Create your models here.
-
 from django.db import models
-from users.models import User
-from django.core.validators import MinValueValidator
-
-# Choices for reservation status
-RESERVATION_STATUS_CHOICES = [
-    ("Booked", "Booked"),
-    ("Checked In", "Checked In"),
-    ("Checked Out", "Checked Out"),
-    ("Cancelled", "Cancelled"),
-]
+from django.conf import settings
+# from reservations.models import Reservation
 
 
-class Reservation(models.Model):
-    """
-    Model representing a hotel reservation.
-    """
+class Billing(models.Model):
+    class PaymentStatus(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        PAID = "PAID", "Paid"
+        FAILED = "FAILED", "Failed"
+        REFUNDED = "REFUNDED", "Refunded"
 
-    reservation_id = models.AutoField(primary_key=True)
+    # reservation = models.ForeignKey(
+    #     Reservation, on_delete=models.CASCADE, related_name="billings"
+    # )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE
-    )  # If the user is deleted, delete all their reservations too.
-    check_in_date = models.DateField()
-    check_out_date = models.DateField()
-    number_of_guests = models.IntegerField(
-        validators=[MinValueValidator(1)]  # At least 1 guest required
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="billings"
     )
-    total_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(1.0)],  # prevents 0 or negative amounts
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=50, blank=True, null=True)
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING,
     )
-    reservation_status = models.CharField(
-        max_length=20, choices=RESERVATION_STATUS_CHOICES, default="Booked"
-    )
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "billing"
+        verbose_name = "Billing"
+        verbose_name_plural = "Billings"
 
     def __str__(self):
-        return f"Reservation {self.reservation_id} - User: {self.user}"
-
-
-class RoomReservation(models.Model):
-    # Foreign Key to the Reservation model
-    reservation = models.ForeignKey(
-        "reservations.Reservation",
-        on_delete=models.CASCADE,
-        related_name="room_reservations",
-    )
-
-    # Foreign Key to the Room model
-    room = models.ForeignKey(
-        "rooms.Room", on_delete=models.CASCADE, related_name="room_reservations"
-    )
-
-    def __str__(self):
-        return f"Reservation {self.reservation.id} for Room {self.room.id}"
+        return f"Billing {self.id} - {self.reservation} - {self.payment_status}"
