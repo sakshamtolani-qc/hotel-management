@@ -1,6 +1,7 @@
-from rest_framework import generics, permissions, filters
-from billing.models import Billing
-from billing.serializers import BillingSerializer
+from rest_framework import generics, permissions, filters, status
+from rest_framework.response import Response
+from billing.models import Billing, Invoice
+from billing.serializers import BillingSerializer, InvoiceSerializer
 
 
 class BillingListCreateView(generics.ListCreateAPIView):
@@ -8,7 +9,7 @@ class BillingListCreateView(generics.ListCreateAPIView):
     serializer_class = BillingSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["reservation__id", "user__username", "transaction_id"]
+    search_fields = ["user__username", "transaction_id"]
     ordering_fields = ["created_at", "total_amount", "payment_status"]
     ordering = ["-created_at"]
 
@@ -20,3 +21,52 @@ class BillingDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Billing.objects.all()
     serializer_class = BillingSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class InvoiceListCreateView(generics.ListCreateAPIView):
+    queryset = Invoice.objects.all().order_by("-created_at")
+    serializer_class = InvoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["invoice_number", "bill_to_name", "bill_to_phone", "transaction_id"]
+    ordering_fields = ["created_at", "grand_total", "payment_status", "due_date"]
+    ordering = ["-created_at"]
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
+class InvoiceDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Invoice.objects.all()
+    serializer_class = InvoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class MarkInvoicePaidView(generics.UpdateAPIView):
+    queryset = Invoice.objects.all()
+    serializer_class = InvoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        invoice = self.get_object()
+        invoice.payment_status = Invoice.PaymentStatus.PAID
+        invoice.save()
+        return Response(self.get_serializer(invoice).data, status=status.HTTP_200_OK)
+
+
+class SendPaymentLinkView(generics.RetrieveAPIView):
+    queryset = Invoice.objects.all()
+    serializer_class = InvoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        # Stub: In a real system, you'd generate and send a payment link here
+        invoice = self.get_object()
+        return Response(
+            {
+                "message": "Payment link sent",
+                "invoice_id": invoice.id,
+                "invoice_number": invoice.invoice_number,
+            },
+            status=status.HTTP_200_OK,
+        )

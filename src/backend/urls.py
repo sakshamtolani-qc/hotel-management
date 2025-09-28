@@ -33,6 +33,7 @@ api_patterns = [
 # ]
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/billing/', include('billing.urls.api', namespace='billing')),
     path('api/reservations/', include('reservations.urls.api', namespace='reservations')),
     path('api/rooms/', include('rooms.urls.api', namespace='rooms')),
     path('api/users/', include('users.urls.api', namespace='users')), 
