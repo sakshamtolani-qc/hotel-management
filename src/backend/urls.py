@@ -34,6 +34,6 @@ api_patterns = [
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/reservations/', include('reservations.urls.api', namespace='reservations')),
-    path("api/", include("rooms.urls.api", namespace="rooms")),
+    path('api/rooms/', include('rooms.urls.api', namespace='rooms')),
     path('api/users/', include('users.urls.api', namespace='users')), 
 ]

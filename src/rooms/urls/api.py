@@ -1,17 +1,35 @@
-
-
-# urlpatterns = [
-#     # Add your URL patterns here
-#     # Example:
-#     # path('list/', views.RoomListView.as_view(), name='room-list'),
-# ]
-from django.urls import path
-from ..views.api import RoomCreateView, RoomListView, RoomDetailView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 app_name = "rooms"
 
+from ..views.api import (
+    RoomListView,
+    RoomDetailView, 
+    RoomCreateView,
+    RoomUpdateView,
+    RoomDeleteView,
+    RoomAvailabilityView,
+    AvailableRoomsView,
+    RoomStatsView
+)
+
 urlpatterns = [
-    path("addroom/", RoomCreateView.as_view(), name="room-add"),   # POST → /addroom
-    path("rooms/", RoomListView.as_view(), name="room-list"),      # GET → /rooms
-    path("rooms/<str:room_number>/", RoomDetailView.as_view(), name="room-detail"),  # GET → /rooms/<room_no>
+    # Individual API endpoints
+    path("list/", RoomListView.as_view(), name="room-list"),
+    path("create/", RoomCreateView.as_view(), name="room-create"),
+    path("<int:room_id>/detail/", RoomDetailView.as_view(), name="room-detail"),
+    path("<int:room_id>/update/", RoomUpdateView.as_view(), name="room-update"),
+    path("<int:room_id>/delete/", RoomDeleteView.as_view(), name="room-delete"),
+    
+    # Availability and booking features
+    path("check-availability/", RoomAvailabilityView.as_view(), name="room-availability"),
+    path("available/", AvailableRoomsView.as_view(), name="available-rooms"),
+    
+    # Statistics
+    path("statistics/", RoomStatsView.as_view(), name="room-statistics"),
+    
+    # Legacy endpoints for backward compatibility
+    path("addroom/", RoomCreateView.as_view(), name="room-add"),
+    path("rooms/", RoomListView.as_view(), name="room-list-legacy"),
 ]
