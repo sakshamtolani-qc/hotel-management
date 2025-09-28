@@ -46,7 +46,7 @@ MODE = os.getenv("MODE", "dev")
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = client.secrets.get_secret_by_name(secret_name="SECRET_KEY",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
+SECRET_KEY = client.secrets.get_secret_by_name(secret_name="SECRET_KEY",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if MODE == "dev":
@@ -142,22 +142,22 @@ WSGI_APPLICATION = "backend.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': "postgres",
-        'USER': client.secrets.get_secret_by_name(secret_name="DB_USER",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
-        'PASSWORD': client.secrets.get_secret_by_name(secret_name="DB_PASSWORD",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
-        'HOST': client.secrets.get_secret_by_name(secret_name="DB_HOST",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
-        'PORT': client.secrets.get_secret_by_name(secret_name="DB_PORT",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': "postgres",
+#         'USER': client.secrets.get_secret_by_name(secret_name="DB_USER",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
+#         'PASSWORD': client.secrets.get_secret_by_name(secret_name="DB_PASSWORD",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
+#         'HOST': client.secrets.get_secret_by_name(secret_name="DB_HOST",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
+#         'PORT': client.secrets.get_secret_by_name(secret_name="DB_PORT",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
+#     }
+# }
 
 
 # Password validation

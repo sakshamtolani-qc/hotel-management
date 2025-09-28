@@ -26,7 +26,14 @@ api_patterns = [
     path("users/", include("users.urls.api", namespace="users")),
 ]
 
+# urlpatterns = [
+#     path("admin/", admin.site.urls),
+    
+#     path("api/", include(api_patterns)),  # All API routes under /api/
+# ]
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/", include(api_patterns)),  # All API routes under /api/
+    path('admin/', admin.site.urls),
+    path('api/reservations/', include('reservations.urls.api', namespace='reservations')),
+    path("api/", include("rooms.urls.api", namespace="rooms")),
+    path('api/users/', include('users.urls.api', namespace='users')), 
 ]
