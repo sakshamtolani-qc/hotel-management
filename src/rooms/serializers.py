@@ -59,7 +59,7 @@ class RoomSerializer(serializers.ModelSerializer):
 
 
 class RoomListSerializer(serializers.ModelSerializer):
-    """Optimized serializer for listing rooms"""
+    """Optimized serializer for listing rooms - matches frontend Room interface exactly"""
     
     id = serializers.SerializerMethodField()
     priceRange = serializers.CharField(source='price_range_display', read_only=True)
@@ -69,15 +69,21 @@ class RoomListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
         fields = [
-            'id', 'room_number', 'title', 'description', 'category', 'status',
-            'priceRange', 'image', 'amenities', 'isFavorite'
+            'id', 'title', 'description', 'priceRange', 'image', 
+            'status', 'category', 'amenities', 'isFavorite'
         ]
     
     def get_id(self, obj):
         return obj.room_id
     
     def get_amenities(self, obj):
-        return obj.get_amenities_dict()
+        """Return amenities in exact frontend format"""
+        return {
+            'beds': obj.beds,
+            'guests': obj.guests,
+            'bathrooms': obj.bathrooms,
+            'rating': float(obj.rating)
+        }
 
 
 class RoomCreateSerializer(serializers.ModelSerializer):
