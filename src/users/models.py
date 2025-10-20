@@ -8,7 +8,8 @@ class User(AbstractUser):
         FRONTDESK = "FRONTDESK", "Front Desk"
         HOUSEKEEPING = "HOUSEKEEPING", "Housekeeping"
         MANAGER = "MANAGER", "Manager"
-
+        CUSTOMER = "CUSTOMER", "Customer"
+        
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)

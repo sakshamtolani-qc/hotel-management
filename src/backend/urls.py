@@ -24,6 +24,7 @@ api_patterns = [
     path("reservations/", include("reservations.urls.api", namespace="reservations")),
     path("rooms/", include("rooms.urls.api", namespace="rooms")),
     path("users/", include("users.urls.api", namespace="users")),
+    path("api/", include("reservations.urls")),
 ]
 
 # urlpatterns = [

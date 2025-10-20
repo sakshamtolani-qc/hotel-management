@@ -40,12 +40,12 @@ class ReservationViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = super().get_queryset()
-        
+
         # Filter by user if specified
         user_id = self.request.query_params.get('user_id')
         if user_id:
             queryset = queryset.filter(user_id=user_id)
-        
+
         # Filter by status
         status_filter = self.request.query_params.get('status')
         if status_filter and status_filter != 'all':
@@ -55,7 +55,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(check_out_date__lt=date.today())
             else:
                 queryset = queryset.filter(reservation_status=status_filter)
-        
+
         # Date range filtering
         date_from = self.request.query_params.get('date_from')
         date_to = self.request.query_params.get('date_to')
@@ -63,9 +63,9 @@ class ReservationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(check_in_date__gte=date_from)
         if date_to:
             queryset = queryset.filter(check_out_date__lte=date_to)
-        
+
         return queryset
-    
+
     def create(self, request, *args, **kwargs):
         # Handle user assignment if not provided
         if 'user' not in request.data:

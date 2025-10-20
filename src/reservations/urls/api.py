@@ -34,6 +34,7 @@ router.register(r'api', ReservationViewSet, basename='reservation-api')
 urlpatterns = [
     # ViewSet routes (Modern REST API)
     path('', include(router.urls)),
+    path("reservations/", ReservationCreateView.as_view(), name="reservation-list-create"),
     
     # Individual API endpoints (Backward compatibility and specific use cases)
     path("list/", ReservationListView.as_view(), name="reservation-list"),

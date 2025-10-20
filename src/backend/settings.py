@@ -15,10 +15,30 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 from infisical_sdk import InfisicalSDKClient
+from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-load_dotenv(BASE_DIR / ".env")
+BASE_DIR = Path(__file__).resolve().parent.parent  # Path object
+
+# ---------------------------------------------------------------------------------
+# BASE DIRECTORIES
+# ---------------------------------------------------------------------------------
+# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ---------------------------------------------------------------------------------
+# MEDIA (For user-uploaded images like room photos)
+# ---------------------------------------------------------------------------------
+# All uploaded images (rooms, etc.) will be stored in /media/rooms/
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Full path: <project_root>/media/
+
+# ---------------------------------------------------------------------------------
+# ENVIRONMENT VARIABLES
+# ---------------------------------------------------------------------------------
+load_dotenv(str(BASE_DIR.parent / ".env"))  # One level above backend
+
+
+# print("INFISCAL_HOST:", os.getenv("INFISCAL_HOST"))
+# print("INFISCAL_TOKEN:", os.getenv("INFISCAL_TOKEN"))
 
 def get_env(key, environment="dev", path="/"):
     resp = client.list_secrets(environment=environment, path=path)
@@ -28,26 +48,32 @@ def get_env(key, environment="dev", path="/"):
     raise KeyError(f"Secret {key} not found in Infisical")
 
 
+# ---------------------------------------------------------------------------------
+# INFISICAL CLIENT CONFIG
+# ---------------------------------------------------------------------------------
 client = InfisicalSDKClient(
     host=os.getenv("INFISCAL_HOST"),
-    token=os.getenv("INFISCAL_TOKEN"), 
-    cache_ttl=300, 
+    token=os.getenv("INFISCAL_TOKEN"),
+    cache_ttl=300,
 )
 
+host = os.getenv("INFISCAL_HOST")
+token = os.getenv("INFISCAL_TOKEN")
 
+if host is None or token is None:
+    print("Warning: INFISCAL_HOST or INFISCAL_TOKEN not set. Using local fallback.")
+    client = None  # Or skip Infisical entirely in dev
+else:
+    client = InfisicalSDKClient(host=host, token=token, cache_ttl=300)
 
-
-
-# Environment settings
+# ---------------------------------------------------------------------------------
+# ENVIRONMENT MODE
+# ---------------------------------------------------------------------------------
 MODE = os.getenv("MODE", "dev")
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = client.secrets.get_secret_by_name(secret_name="SECRET_KEY",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue
-
+# ---------------------------------------------------------------------------------
+# SECRET KEY MANAGEMENT
+# ---------------------------------------------------------------------------------
 try:
     SECRET_KEY = client.secrets.get_secret_by_name(
         secret_name="SECRET_KEY",
@@ -59,17 +85,27 @@ except Exception as e:
     print(f"Infisical not available: {e}. Falling back to .env SECRET_KEY.")
     SECRET_KEY = os.getenv("SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# ---------------------------------------------------------------------------------
+# DEBUG SETTINGS
+# ---------------------------------------------------------------------------------
 if MODE == "dev":
     DEBUG = os.getenv("DEBUG", "True") == "True"
 else:
-    client.secrets.get_secret_by_name(secret_name="DEBUG",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
+    DEBUG = client.secrets.get_secret_by_name(
+        secret_name="DEBUG",
+        project_id=os.getenv("INFISCAL_PROJECT_ID"),
+        environment_slug="dev",
+        secret_path="/",
+    ).secretValue
 
-ALLOWED_HOSTS = ["localhost","127.0.0.1"]
+# ---------------------------------------------------------------------------------
+# ALLOWED HOSTS
+# ---------------------------------------------------------------------------------
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-
-# Application definition
-
+# ---------------------------------------------------------------------------------
+# APPLICATIONS
+# ---------------------------------------------------------------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -85,6 +121,9 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
 ]
 
+# ---------------------------------------------------------------------------------
+# REST FRAMEWORK & JWT SETTINGS
+# ---------------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -99,30 +138,19 @@ SIMPLE_JWT = {
     "UPDATE_LAST_LOGIN": False,
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
-    "VERIFYING_KEY": None,
-    "AUDIENCE": None,
-    "ISSUER": None,
-    "JWK_URL": None,
-    "LEEWAY": 0,
     "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "TOKEN_TYPE_CLAIM": "token_type",
-    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
-    "JTI_CLAIM": "jti",
-    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
-    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
-    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
+# ---------------------------------------------------------------------------------
+# MIDDLEWARE
+# ---------------------------------------------------------------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    # "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -130,8 +158,14 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# ---------------------------------------------------------------------------------
+# URL CONFIGURATION
+# ---------------------------------------------------------------------------------
 ROOT_URLCONF = "backend.urls"
 
+# ---------------------------------------------------------------------------------
+# TEMPLATE SETTINGS
+# ---------------------------------------------------------------------------------
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -147,102 +181,93 @@ TEMPLATES = [
     },
 ]
 
+# ---------------------------------------------------------------------------------
+# WSGI CONFIG
+# ---------------------------------------------------------------------------------
 WSGI_APPLICATION = "backend.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# ---------------------------------------------------------------------------------
+# DATABASE CONFIGURATION
+# ---------------------------------------------------------------------------------
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3"
     }
 }
+# For PostgreSQL (Future use)
 # DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': "postgres",
-#         'USER': client.secrets.get_secret_by_name(secret_name="DB_USER",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
-#         'PASSWORD': client.secrets.get_secret_by_name(secret_name="DB_PASSWORD",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
-#         'HOST': client.secrets.get_secret_by_name(secret_name="DB_HOST",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
-#         'PORT': client.secrets.get_secret_by_name(secret_name="DB_PORT",project_id=os.getenv("INFISCAL_PROJECT_ID"),environment_slug="dev",secret_path="/",).secretValue,
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": "postgres",
+#         "USER": client.secrets.get_secret_by_name(...),
+#         "PASSWORD": client.secrets.get_secret_by_name(...),
+#         "HOST": client.secrets.get_secret_by_name(...),
+#         "PORT": client.secrets.get_secret_by_name(...),
 #     }
 # }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# ---------------------------------------------------------------------------------
+# PASSWORD VALIDATION
+# ---------------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
+# ---------------------------------------------------------------------------------
+# INTERNATIONALIZATION
+# ---------------------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "Asia/Kolkata"
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# ---------------------------------------------------------------------------------
+# STATIC & MEDIA FILES CONFIGURATION
+# ---------------------------------------------------------------------------------
 STATIC_URL = "/static/"
-MEDIA_URL = "images/"
-# STATICFILES_DIRS = [BASE_DIR / "static", BASE_DIR / "frontend/build/static"]
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [str(BASE_DIR / "static")]
+STATIC_ROOT = str(BASE_DIR / "staticfiles")
 
-MEDIA_ROOT = BASE_DIR / "static/images"
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+# ✅ MEDIA CONFIG (for uploads)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")  # Actual image storage location
 
+# --------------------------------------------------    -------------------------------
+# DEFAULT AUTO FIELD
+# ---------------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Custom User Model
+# ---------------------------------------------------------------------------------
+# CUSTOM USER MODEL
+# ---------------------------------------------------------------------------------
 AUTH_USER_MODEL = "users.User"
 
-# CORS settings for frontend development
+# ---------------------------------------------------------------------------------
+# CORS SETTINGS
+# ---------------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
-
 CORS_ALLOW_CREDENTIALS = True
-
 CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
 ]
-
-# For development only - allows all origins
+# Allow all origins in dev mode
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True

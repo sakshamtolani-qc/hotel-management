@@ -17,6 +17,12 @@ from ..serializers import (
     RoomSearchSerializer
 )
 from reservations.models import Reservation
+# views.py
+from ..models import Room
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.core.files.storage import default_storage
+from django.conf import settings
+import uuid
 
 
 class RoomViewSet(viewsets.ModelViewSet):
@@ -282,9 +288,11 @@ class RoomDetailView(APIView):
         serializer = RoomSerializer(room)
         return Response(serializer.data)
 
-
 class RoomCreateView(APIView):
     """Create new room (frontend compatible)"""
+    
+    parser_classes = [MultiPartParser, FormParser]  # Must be at class level
+    
     def post(self, request):
         try:
             print(f"Received data: {request.data}")
@@ -292,38 +300,32 @@ class RoomCreateView(APIView):
             
             if serializer.is_valid():
                 room = serializer.save()
+                
                 response_serializer = RoomSerializer(room)
                 return Response({
                     'message': 'Room created successfully',
                     'room': response_serializer.data
                 }, status=status.HTTP_201_CREATED)
-            else:
-                print(f"Validation errors: {serializer.errors}")
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                
+            
+            print(f"Validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         except Exception as e:
             print(f"Error in RoomCreateView: {str(e)}")
             import traceback
             traceback.print_exc()
             
-            # Handle specific database errors
-            error_message = str(e)
-            if "UNIQUE constraint failed: rooms_room.room_number" in error_message:
+            # Handle unique constraint errors
+            if "UNIQUE constraint failed: rooms_room.room_number" in str(e):
                 return Response({
                     'error': 'Room number already exists',
-                    'details': 'A room with this room number already exists. Please use a different room number.',
                     'field': 'roomNo'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            elif "UNIQUE constraint" in error_message:
-                return Response({
-                    'error': 'Duplicate entry',
-                    'details': 'This data already exists in the system.',
-                }, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({
-                    'error': 'Internal server error',
-                    'details': str(e)
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            return Response({
+                'error': 'Internal server error',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class RoomUpdateView(APIView):
@@ -515,3 +517,37 @@ class RoomStatsView(APIView):
             'recent_additions_this_month': recent_additions,
             'occupancy_rate': round((status_stats.get('Occupied', 0) / total_rooms) * 100, 2) if total_rooms > 0 else 0
         })
+
+
+class RoomImageUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, room_id):
+        room = Room.objects.get(pk=room_id)
+        updated_files = room.additional_images or []
+
+        # Main image
+        if 'image' in request.FILES:
+            room.image = request.FILES['image']
+
+        # Additional images
+        if 'additional_images' in request.FILES:
+            for f in request.FILES.getlist('additional_images'):
+                ext = f.name.split('.')[-1]
+                unique_name = f"rooms/{uuid.uuid4().hex}.{ext}"
+                path = default_storage.save(unique_name, f)
+                updated_files.append(path)
+
+        room.additional_images = updated_files
+        room.save()
+        
+        return Response({
+            "message": "Images uploaded successfully.",
+            "images": ([room.image.url] if room.image else []) + 
+                    [settings.MEDIA_URL + str(img) for img in updated_files]
+        }, status=status.HTTP_200_OK)
+
+        # return Response({
+        #     "message": "Images uploaded successfully.",
+        #     "images": [room.image] + updated_files
+        # }, status=status.HTTP_200_OK)

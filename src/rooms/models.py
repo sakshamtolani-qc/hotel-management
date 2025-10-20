@@ -73,11 +73,13 @@ class Room(models.Model):
     is_favorite = models.BooleanField(default=False)
     
     # Images
-    image = models.CharField(max_length=500, blank=True, help_text="Primary room image URL")
-    additional_images = models.JSONField(
-        default=list, blank=True, 
-        help_text="Array of additional image URLs"
-    )
+    # image = models.CharField(max_length=500, blank=True, help_text="Primary room image URL")
+    # additional_images = models.JSONField(
+    #     default=list, blank=True, 
+    #     help_text="Array of additional image URLs"
+    # )
+    image = models.ImageField(upload_to='rooms/', blank=True, null=True)  # main image
+    additional_images = models.JSONField(default=list, blank=True)  # extra images
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
