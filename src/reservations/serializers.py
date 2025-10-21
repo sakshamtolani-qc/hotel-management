@@ -33,8 +33,9 @@ class ReservationSerializer(serializers.ModelSerializer):
     guestName = serializers.CharField(source='guest_name')
     phoneNumber = serializers.CharField(source='phone_number')
     aadharNo = serializers.CharField(source='aadhar_no')
-    roomType = serializers.CharField(source='room_type', allow_blank=True, required=False)
-    
+    roomType = serializers.CharField(source='room_type', allow_blank=True, default="Standard Room",required=False)
+    # room_type = serializers.CharField(required=False, allow_blank=True, default="Standard Room")
+
     # Relations
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     room_reservations = RoomReservationSerializer(many=True, read_only=True)
@@ -89,7 +90,8 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
     checkOut = serializers.DateField(source='check_out_date', required=False, allow_null=True)
     guests = serializers.IntegerField(source='number_of_guests', min_value=1)
     price = serializers.DecimalField(source='total_amount', max_digits=10, decimal_places=2, required=False, default=1000)
-    
+    room_type = serializers.CharField(required=False, allow_blank=True, default="Standard Room")
+
     class Meta:
         model = Reservation
         fields = ['name', 'phoneNumber', 'email', 'aadharNo', 'checkIn', 'checkOut', 'guests', 'room_type', 'price']
@@ -118,6 +120,12 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
         validated_data['reservation_status'] = 'upcoming'
         
         return super().create(validated_data)
+    def validate(self, data):
+        check_in = data.get('check_in_date')
+        check_out = data.get('check_out_date')
+        if check_out and check_out < check_in:
+            raise serializers.ValidationError("Check-out date cannot be before check-in")
+        return data
 
 
 class ReservationListSerializer(serializers.ModelSerializer):
@@ -130,12 +138,12 @@ class ReservationListSerializer(serializers.ModelSerializer):
     guests = serializers.IntegerField(source='number_of_guests')
     price = serializers.DecimalField(source='total_amount', max_digits=10, decimal_places=2)
     status = serializers.CharField(source='reservation_status')
-    roomType = serializers.CharField(source='room_type')
-    
+    room_type = serializers.CharField(source="roomType", read_only=True)  # 👈 matches field name
+
     class Meta:
         model = Reservation
-        fields = ['id', 'guestName', 'roomType', 'checkIn', 'checkOut', 'duration', 'guests', 'price', 'status', 'created_at']
-    
+        fields = ['id', 'guestName', 'room_type', 'checkIn', 'checkOut', 'duration', 'guests', 'price', 'status', 'created_at']
+
     def get_id(self, obj):
         return str(obj.reservation_id)
 

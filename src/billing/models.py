@@ -2,7 +2,6 @@ from django.db import models
 from django.conf import settings
 # from reservations.models import Reservation
 
-
 class Billing(models.Model):
     class PaymentStatus(models.TextChoices):
         PENDING = "PENDING", "Pending"
@@ -41,11 +40,40 @@ class Billing(models.Model):
         return f"Billing {self.id} - {self.payment_status}"
 
 
+# class Invoice(models.Model):
+#     class PaymentStatus(models.TextChoices):
+#         PENDING = "PENDING", "Pending"
+#         PAID = "PAID", "Paid"
+#         OVERDUE = "OVERDUE", "Overdue"
+
+#     user = models.ForeignKey(
+#         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="invoices"
+#     )
+#     invoice_number = models.CharField(max_length=50, unique=True)
+#     date = models.DateField()
+#     due_date = models.DateField()
+#     payment_status = models.CharField(
+#         max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
+#     )
+
+
+
 class Invoice(models.Model):
     class PaymentStatus(models.TextChoices):
-        PENDING = "PENDING", "Pending"
-        PAID = "PAID", "Paid"
-        OVERDUE = "OVERDUE", "Overdue"
+        PENDING = "Pending", "Pending"
+        PAID = "Paid", "Paid"
+        OVERDUE = "Overdue", "Overdue"
+
+    # optional reservation link
+    from django.conf import settings as _settings  # keep existing imports
+
+    reservation = models.ForeignKey(
+        "reservations.Reservation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invoice",
+    )  # <-- new: link invoice -> reservation (optional)
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="invoices"
@@ -56,7 +84,6 @@ class Invoice(models.Model):
     payment_status = models.CharField(
         max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
     )
-
     # Bill-to details (aligned with frontend)
     bill_to_name = models.CharField(max_length=100)
     bill_to_phone = models.CharField(max_length=20)

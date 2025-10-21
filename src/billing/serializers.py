@@ -1,8 +1,11 @@
 from rest_framework import serializers
-from billing.models import Billing, Invoice, InvoiceItem
 from decimal import Decimal
+from .models import Invoice, InvoiceItem
+from billing.models import Billing
 
-
+# --------------------------
+# Billing Serializer
+# --------------------------
 class BillingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Billing
@@ -10,8 +13,11 @@ class BillingSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
+# --------------------------
+# Invoice Item Serializer
+# --------------------------
 class InvoiceItemSerializer(serializers.ModelSerializer):
-    itemNo = serializers.CharField(source="item_no")
+    itemNo = serializers.CharField(source="item_no")  # Map API field to model
     description = serializers.CharField(required=False, allow_blank=True)
     quantity = serializers.IntegerField()
     price = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -19,28 +25,31 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InvoiceItem
-        fields = [
-            "id",
-            "itemNo",
-            "description",
-            "quantity",
-            "price",
-            "total",
-        ]
+        fields = ["id", "itemNo", "description", "quantity", "price", "total"]
         read_only_fields = ["id"]
 
 
+# --------------------------
+# Bill To Serializer (nested)
+# --------------------------
 class BillToSerializer(serializers.Serializer):
     name = serializers.CharField()
     phone = serializers.CharField()
     address = serializers.CharField()
 
 
+# --------------------------
+# Invoice Serializer
+# --------------------------
 class InvoiceSerializer(serializers.ModelSerializer):
+    # Map API fields to model fields
     invoiceNumber = serializers.CharField(source="invoice_number")
     dueDate = serializers.DateField(source="due_date")
-    paymentStatus = serializers.ChoiceField(source="payment_status", choices=Invoice.PaymentStatus.choices)
-    billTo = BillToSerializer(write_only=True)
+    paymentStatus = serializers.ChoiceField(
+        source="payment_status",
+        choices=Invoice.PaymentStatus.choices
+    )
+    billTo = BillToSerializer(write_only=True)  # Nested input only
     subtotal = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     tax = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     grandTotal = serializers.DecimalField(source="grand_total", max_digits=10, decimal_places=2, read_only=True)
@@ -69,9 +78,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "updated_at", "subtotal", "tax", "grandTotal"]
 
+    # --------------------------
+    # Represent nested billTo data in output
+    # --------------------------
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Inject billTo from model fields
         data["billTo"] = {
             "name": instance.bill_to_name,
             "phone": instance.bill_to_phone,
@@ -79,6 +90,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
         }
         return data
 
+    # --------------------------
+    # Compute totals (subtotal, tax, grand total)
+    # --------------------------
     def _recalculate_totals(self, items_data):
         subtotal = sum(
             Decimal(str(item.get("quantity", 0))) * Decimal(str(item.get("price", 0)))
@@ -88,14 +102,22 @@ class InvoiceSerializer(serializers.ModelSerializer):
         grand_total = (subtotal + tax).quantize(Decimal("0.01"))
         return subtotal, tax, grand_total
 
+    # --------------------------
+    # Create invoice with nested items
+    # --------------------------
     def create(self, validated_data):
         items_data = validated_data.pop("items", [])
         bill_to = validated_data.pop("billTo", {})
-        request = self.context.get("request")
-        user = request.user if request else None
 
-        # Compute totals based on items
+        # Get user from serializer context
+        user = self.context.get("user")
+        if not user:
+            raise serializers.ValidationError("User is required to create an invoice.")
+
+        # Compute totals
         subtotal, tax, grand_total = self._recalculate_totals(items_data)
+
+        # Create Invoice instance
         invoice = Invoice.objects.create(
             user=user,
             bill_to_name=bill_to.get("name", ""),
@@ -107,15 +129,18 @@ class InvoiceSerializer(serializers.ModelSerializer):
             **validated_data,
         )
 
+        # Create Invoice Items
         for item in items_data:
             quantity = Decimal(str(item.get("quantity", 0)))
             price = Decimal(str(item.get("price", 0)))
             total = (quantity * price).quantize(Decimal("0.01"))
-            # itemNo is mapped by source to item_no
             InvoiceItem.objects.create(invoice=invoice, total=total, **item)
 
         return invoice
 
+    # --------------------------
+    # Update invoice and items
+    # --------------------------
     def update(self, instance, validated_data):
         items_data = validated_data.pop("items", None)
         bill_to = validated_data.pop("billTo", None)
@@ -124,14 +149,17 @@ class InvoiceSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        if bill_to is not None:
+        # Update billTo fields
+        if bill_to:
             instance.bill_to_name = bill_to.get("name", instance.bill_to_name)
             instance.bill_to_phone = bill_to.get("phone", instance.bill_to_phone)
             instance.bill_to_address = bill_to.get("address", instance.bill_to_address)
 
         # Replace items if provided
         if items_data is not None:
+            # Remove old items
             instance.items.all().delete()
+            # Create new items
             for item in items_data:
                 quantity = Decimal(str(item.get("quantity", 0)))
                 price = Decimal(str(item.get("price", 0)))

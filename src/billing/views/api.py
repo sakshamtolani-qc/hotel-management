@@ -3,6 +3,23 @@ from rest_framework.response import Response
 from billing.models import Billing, Invoice
 from billing.serializers import BillingSerializer, InvoiceSerializer
 
+# billing/views/api.py (or extend your existing views file)
+from django.shortcuts import get_object_or_404
+
+class InvoiceByReservationView(generics.RetrieveAPIView):
+    """
+    Return the invoice created for a reservation id.
+    GET /api/billing/invoices/by-reservation/<reservation_id>/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = InvoiceSerializer
+    lookup_field = "reservation_id"
+
+    def get(self, request, reservation_id, *args, **kwargs):
+        invoice = get_object_or_404(Invoice, reservation__id=reservation_id)
+        serializer = self.get_serializer(invoice)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class BillingListCreateView(generics.ListCreateAPIView):
     queryset = Billing.objects.all()
