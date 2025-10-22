@@ -11,6 +11,8 @@ RESERVATION_STATUS_CHOICES = [
     ("booked", "Booked"),
     ("checked_in", "Checked In"),
     ("checked_out", "Checked Out"),
+    ("confirmed", "Confirmed"),   # ✅ add
+    ("pending", "Pending"), 
 ]
 
 

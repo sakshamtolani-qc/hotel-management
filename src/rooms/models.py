@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 import json
+from cloudinary.models import CloudinaryField
 
 # Choices aligned with frontend
 ROOM_CATEGORY_CHOICES = [
@@ -78,9 +79,17 @@ class Room(models.Model):
     #     default=list, blank=True, 
     #     help_text="Array of additional image URLs"
     # )
-    image = models.ImageField(upload_to='rooms/', blank=True, null=True)  # main image
-    additional_images = models.JSONField(default=list, blank=True)  # extra images
+    # image = models.ImageField(upload_to='rooms/', blank=True, null=True)  # main image
+    # additional_images = models.JSONField(default=list, blank=True)  # extra images
     
+    
+    # Main image stored in Cloudinary
+    image = CloudinaryField('image', folder='hms/rooms', blank=True, null=True)
+
+    # Additional images stored in Cloudinary
+    # Store Cloudinary public_ids in JSONField
+    additional_images = models.JSONField(default=list, blank=True, help_text="List of Cloudinary public_ids")
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
