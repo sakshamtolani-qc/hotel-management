@@ -80,7 +80,15 @@ class ReservationViewSet(viewsets.ModelViewSet):
             )
             request.data['user'] = user.id
         
-        return super().create(request, *args, **kwargs)
+        # return super().create(request, *args, **kwargs)
+        # ✅ Pass request in serializer context so it can access query params
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
     
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
@@ -175,8 +183,11 @@ class ReservationListView(APIView):
 # Create Reservation (Frontend compatible)
 class ReservationCreateView(APIView):
     def post(self, request):
-        serializer = ReservationCreateSerializer(data=request.data)
-        
+        # serializer = ReservationCreateSerializer(data=request.data)
+        serializer = ReservationCreateSerializer(data=request.data, context={'request': request})
+        print(">>> RAW REQUEST DATA:", request.data)
+        print(">>> QUERY PARAMS:", request.query_params)
+
         if serializer.is_valid():
             # Create or get user based on email
             user, created = User.objects.get_or_create(
@@ -190,7 +201,40 @@ class ReservationCreateView(APIView):
             
             # Create reservation
             reservation = serializer.save(user=user)
-            
+            # --- Step 1: Create RoomReservation entries ---
+            # ✅ Step 1: Handle both query param and body for room IDs
+           # --- Step 1: Handle both query param and body for room IDs ---
+            room_ids = request.data.get("roomIds") or request.query_params.getlist("roomId")
+
+            # Normalize room_ids into a list
+            if isinstance(room_ids, str):
+                room_ids = [room_ids]
+            elif isinstance(room_ids, (int, float)):
+                room_ids = [str(room_ids)]
+
+            print(">>> Normalized room_ids:", room_ids)
+
+            # Defensive check
+            if isinstance(request.data, dict) and "message" in request.data:
+                print(">>> WARNING: Frontend sent previous response instead of form data!")
+                return Response({"error": "Invalid reservation data format"}, status=400)
+
+            for room_id in room_ids:
+                try:
+                    print(f">>> Assigning room_id: {room_id}")
+                    room = Room.objects.get(room_id=room_id)
+                    print(f"✅ Assigning Room {room.room_id} to Reservation {reservation.reservation_id}")
+
+                    rr = RoomReservation.objects.create(reservation=reservation, room=room)
+                    print(f">>> Created RoomReservation ID: {rr.id}")
+                except Room.DoesNotExist:
+                    print(f">>> Room not found for ID: {room_id}")
+                    continue
+
+            print(">>> Reservation created successfully:", reservation.reservation_id)
+            print(">>> Room IDs received:", room_ids)
+            print(">>> Total RoomReservation created:", RoomReservation.objects.filter(reservation=reservation).count())
+
             # Return response in frontend format
             response_serializer = ReservationSerializer(reservation)
             return Response({
@@ -285,10 +329,14 @@ class RoomAssignView(APIView):
 
         assigned_rooms = []
         for room_id in room_ids:
-            room = get_object_or_404(Room, id=room_id)
+            room = Room.objects.get(room_id=room_id)
+            print(f"✅ Assigning Room {room.room_id} to Reservation {reservation.reservation_id}")
+
             obj, created = RoomReservation.objects.get_or_create(reservation=reservation, room=room)
             if created:
-                assigned_rooms.append(room.id)
+                assigned_rooms.append(room.room_id)
+                print(f"✅ Room {room.room_id} assigned to Reservation {reservation.reservation_id}")
+
 
         serializer = ReservationSerializer(reservation)
         return Response({

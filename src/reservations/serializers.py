@@ -91,10 +91,13 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
     guests = serializers.IntegerField(source='number_of_guests', min_value=1)
     price = serializers.DecimalField(source='total_amount', max_digits=10, decimal_places=2, required=False, default=1000)
     room_type = serializers.CharField(required=False, allow_blank=True, default="Standard Room")
+    room_ids = serializers.ListField(
+        child=serializers.IntegerField(), write_only=True, required=False
+    )
 
     class Meta:
         model = Reservation
-        fields = ['name', 'phoneNumber', 'email', 'aadharNo', 'checkIn', 'checkOut', 'guests', 'room_type', 'price']
+        fields = ['name', 'phoneNumber', 'email', 'aadharNo', 'checkIn', 'checkOut', 'guests', 'room_type', 'price', 'room_ids']
     
     def validate_aadharNo(self, value):
         if not re.match(r'^\d{12}$', value):
@@ -112,14 +115,45 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        # Set default check-out date if not provided (same day)
-        if 'check_out_date' not in validated_data or not validated_data['check_out_date']:
-            validated_data['check_out_date'] = validated_data['check_in_date']
-        
-        # Set default status
+        request = self.context.get('request')
+        room_id = None
+
+        # ✅ Try to get room ID from body
+        if request and hasattr(request, "data"):
+            room_id = (
+                request.data.get('room_id')
+                or request.data.get('room')
+                or request.data.get('roomId')
+            )
+
+        # ✅ Or from query string (?roomId=11)
+        if request and hasattr(request, "query_params") and not room_id:
+            room_id = request.query_params.get('roomId')
+
+        # ✅ Or handle list of rooms from frontend
+        room_ids = request.data.get('room_ids', [])
+        if not room_ids and room_id:
+            room_ids = [room_id]
+
         validated_data['reservation_status'] = 'upcoming'
-        
-        return super().create(validated_data)
+
+        # ✅ Create reservation record
+        reservation = super().create(validated_data)
+
+        # ✅ Create RoomReservation(s)
+        from rooms.models import Room
+        from .models import RoomReservation
+        for rid in room_ids:
+            room = Room.objects.filter(id=rid).first()
+            if room:
+                RoomReservation.objects.create(reservation=reservation, room=room)
+                print(f">>> RoomReservation created for Room ID {rid}")
+            else:
+                print(f">>> Room ID {rid} not found, skipping.")
+
+        return reservation
+
+
     def validate(self, data):
         check_in = data.get('check_in_date')
         check_out = data.get('check_out_date')

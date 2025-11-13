@@ -68,11 +68,28 @@ class RoomSerializer(serializers.ModelSerializer):
     def get_price_range_max(self, obj):
         return float(obj.price_range_max) if obj.price_range_max is not None else None
 
+    # def get_amenities(self, obj):
+    #     """
+    #     Returns amenities as a dict for frontend.
+    #     """
+    #     return obj.get_amenities_dict()
     def get_amenities(self, obj):
-        """
-        Returns amenities as a dict for frontend.
-        """
-        return obj.get_amenities_dict()
+        return {
+            'beds': obj.beds,
+            'guests': obj.guests,
+            'bathrooms': obj.bathrooms,
+            'rating': float(obj.rating) if obj.rating else None,
+            'television': obj.television,
+            'wifi': obj.wifi,
+            'washer': obj.washer,
+            'balcony': obj.balcony,
+            'airCondition': obj.air_condition,
+            'kitchen': obj.kitchen,
+            'sanitizers': obj.sanitizers,
+            'fireExtinguishers': obj.fire_extinguisher,
+            'dailyCleaner': obj.daily_cleaning,
+        }
+
 
     def get_amenities_list(self, obj):
         return obj.get_amenities_list()
