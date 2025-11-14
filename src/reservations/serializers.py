@@ -173,13 +173,26 @@ class ReservationListSerializer(serializers.ModelSerializer):
     price = serializers.DecimalField(source='total_amount', max_digits=10, decimal_places=2)
     status = serializers.CharField(source='reservation_status')
     room_type = serializers.CharField(source="roomType", read_only=True)  # 👈 matches field name
+    room_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Reservation
-        fields = ['id', 'guestName', 'room_type', 'checkIn', 'checkOut', 'duration', 'guests', 'price', 'status', 'created_at']
+        fields = ['id', 'guestName', 'room_type', 'checkIn', 'checkOut', 'duration', 'guests', 'price', 'status', 'created_at','room_image']
 
     def get_id(self, obj):
         return str(obj.reservation_id)
+    
+    
+    def get_room_image(self, obj):
+        try:
+            room_res = RoomReservation.objects.filter(reservation=obj).first()
+            if room_res and room_res.room and room_res.room.image:
+                public_id = room_res.room.image  # e.g. hms/rooms/hngsrqzrkgfv3yr5aujo
+                return f"https://res.cloudinary.com/dxrsrhqqn/{public_id}"
+            return None
+        except Exception as e:
+            print("IMAGE ERROR:", e)
+            return None
 
 
 class ReservationUpdateSerializer(serializers.ModelSerializer):
